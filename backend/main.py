@@ -664,6 +664,31 @@ async def generate_api(req: GenerateRequest):
     }
 
 
+
+async def daily_new_tasks_notification_loop():
+    import random
+    import asyncio
+    import database
+    while True:
+        try:
+            # Send notification once a day (every 24 hours)
+            users = database.get_all_users()
+            amount = random.randint(4000, 16000)
+            formatted_amount = f"{amount:,}".replace(",", " ")
+            text = f"🔥 Отличные новости! Сегодня на платформу было добавлено {formatted_amount} новых рекламных заданий на генерацию изображений! Успейте забрать лучшие заказы! 🚀"
+            
+            for user in users:
+                user_id = user["id"]
+                if main_bot:
+                    try:
+                        await main_bot.send_message(user_id, text)
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+        await asyncio.sleep(86400) # 24 hours
+
+
 async def daily_followup_loop():
     import time
     import asyncio
@@ -705,6 +730,7 @@ async def daily_followup_loop():
 @app.on_event("startup")
 async def on_startup():
     asyncio.create_task(daily_followup_loop())
+    asyncio.create_task(daily_new_tasks_notification_loop())
     print("Starting FastAPI server and Telegram bots...")
     if main_bot:
         asyncio.create_task(main_dp.start_polling(main_bot))
