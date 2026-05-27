@@ -78,7 +78,7 @@ async def main_wipe_db(message: types.Message):
         cursor.execute("DELETE FROM users")
         conn.commit()
         conn.close()
-        await message.answer("🧹 База данных пользователей успешно очищена прямо на сервере!")
+        await message.answer("🧹 База данных пользователей успешно очищена прямо на сервере!\n\n❗ Пожалуйста, ПОЛНОСТЬЮ закройте и заново откройте Mini App, чтобы ваш баланс обновился.")
     except Exception as e:
         await message.answer(f"❌ Ошибка очистки базы: {e}")
 
