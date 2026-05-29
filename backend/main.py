@@ -82,10 +82,63 @@ async def main_wipe_db(message: types.Message):
     except Exception as e:
         await message.answer(f"❌ Ошибка очистки базы: {e}")
 
+@main_dp.message(Command("users"))
+async def admin_users_command(message: types.Message):
+    admin_ids = {6389268882, 6783355911}
+    if message.from_user.id not in admin_ids:
+        return
+        
+    stats = database.get_admin_users_stats()
+    if not stats:
+        await message.answer("Нет пользователей в базе.")
+        return
+        
+    lines = ["👥 <b>Список пользователей:</b>\n"]
+    for s in stats:
+        user_id = s['id']
+        name = s['name'] or "Без имени"
+        balance = s['balance'] if s['balance'] is not None else "Не зарегистрирован (не подписан)"
+        
+        lines.append(f"• {name} (<code>{user_id}</code>) | Баланс: {balance}")
+        
+    msg_text = "\n".join(lines)
+    for i in range(0, len(msg_text), 4000):
+        await message.answer(msg_text[i:i+4000], parse_mode="HTML")
+
+@main_dp.message(Command("setbalance"))
+async def admin_setbalance_command(message: types.Message):
+    admin_ids = {6389268882, 6783355911}
+    if message.from_user.id not in admin_ids:
+        return
+        
+    args = message.text.split()
+    if len(args) != 3:
+        await message.answer("Формат: /setbalance <user_id> <amount>")
+        return
+        
+    try:
+        user_id = int(args[1])
+        amount = int(args[2])
+    except ValueError:
+        await message.answer("ID и баланс должны быть числами.")
+        return
+        
+    user = database.get_user(user_id)
+    if not user:
+        await message.answer(f"Пользователь {user_id} не найден в основной базе (еще не подписался).")
+        return
+        
+    database.set_balance(user_id, amount)
+    await message.answer(f"✅ Баланс пользователя {user_id} изменен на {amount} ₸.")
+
 @main_dp.message(CommandStart())
 async def start_handler(message: types.Message):
     user_id = message.from_user.id
     
+    # Save user globally for the feed names
+    database.add_global_user(user_id, message.from_user.first_name or message.from_user.username or "User")
+    
+
     # Handle referral
     args = message.text.split(" ")
     inviter_id = None
@@ -620,6 +673,11 @@ def get_profile_api(user_id: int):
     if not user:
         user = database.create_user(user_id, 2500)
     return user
+
+@app.get("/api/feed_names")
+def get_feed_names_api():
+    names = database.get_all_global_names()
+    return {"names": names}
 
 @app.post("/api/generate")
 async def generate_api(req: GenerateRequest):

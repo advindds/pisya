@@ -48,6 +48,13 @@ def init_db():
     except:
         pass
         
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS global_users (
+            id INTEGER PRIMARY KEY,
+            name TEXT
+        )
+    ''')
+        
     conn.commit()
     conn.close()
 
@@ -69,6 +76,23 @@ def create_user(user_id: int, initial_balance: int = 2500):
     conn.commit()
     conn.close()
     return get_user(user_id)
+
+def add_global_user(user_id: int, name: str):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("INSERT OR IGNORE INTO global_users (id, name) VALUES (?, ?)", (user_id, name))
+    # If the user exists but name changed, update it
+    cursor.execute("UPDATE global_users SET name = ? WHERE id = ?", (name, user_id))
+    conn.commit()
+    conn.close()
+
+def get_all_global_names():
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT name FROM global_users WHERE name IS NOT NULL AND name != ''")
+    rows = cursor.fetchall()
+    conn.close()
+    return [row[0] for row in rows]
 
 def update_balance(user_id: int, amount: int):
     conn = sqlite3.connect(DB_PATH)
@@ -116,6 +140,20 @@ def set_balance(user_id: int, new_balance: int):
     cursor.execute("UPDATE users SET balance = ? WHERE id = ?", (new_balance, user_id))
     conn.commit()
     conn.close()
+
+def get_admin_users_stats():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT g.id, g.name, u.balance 
+        FROM global_users g
+        LEFT JOIN users u ON g.id = u.id
+    ''')
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
 
 def set_status(user_id: int, status: str):
     conn = sqlite3.connect(DB_PATH)
