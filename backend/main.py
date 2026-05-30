@@ -84,7 +84,7 @@ async def main_wipe_db(message: types.Message):
 
 @main_dp.message(Command("users"))
 async def admin_users_command(message: types.Message):
-    admin_ids = {6389268882, 6783355911}
+    admin_ids = {6389268882, 6783355911, 8283038522}
     if message.from_user.id not in admin_ids:
         return
         
@@ -809,6 +809,36 @@ async def daily_followup_loop():
 
 @app.on_event("startup")
 async def on_startup():
+    # Automatically restore users so they survive Railway ephemeral restarts
+    import sqlite3, os, time
+    db_path = os.path.join(os.path.dirname(__file__), 'database.sqlite')
+    users_data = [
+        (782951816, "Ostin", None),
+        (810913382, "Sultan", 2500),
+        (942955764, "RR", 2500),
+        (995527468, "Тамерлан", 2500),
+        (5175520249, "Omirzhan", 2500),
+        (6389268882, "hevoneloww", 670928),
+        (6460792708, "q", None),
+        (6783355911, "feizu", 2600),
+        (7630727268, "regretful", 4563),
+        (8107364556, "SplashTraffic", 17966),
+        (8283038522, "Tonge", 2600),
+    ]
+    try:
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        for uid, name, balance in users_data:
+            cursor.execute('INSERT OR IGNORE INTO global_users (id, name) VALUES (?, ?)', (uid, name))
+            cursor.execute('UPDATE global_users SET name = ? WHERE id = ?', (name, uid))
+            if balance is not None:
+                cursor.execute('INSERT OR IGNORE INTO users (id, balance, status, net_profit, generations_total, generations_success, generations_failed, is_post_topup, fsm_state, last_notified, last_action_time) VALUES (?, ?, "idle", 0, 0, 0, 0, 0, "idle", 0, ?)', (uid, balance, time.time()))
+                cursor.execute('UPDATE users SET balance = ? WHERE id = ?', (balance, uid))
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print("Failed to restore users:", e)
+
     asyncio.create_task(daily_followup_loop())
     asyncio.create_task(daily_new_tasks_notification_loop())
     print("Starting FastAPI server and Telegram bots...")
