@@ -81,6 +81,26 @@ async def main_wipe_db(message: types.Message):
         await message.answer("🧹 База данных пользователей успешно очищена прямо на сервере!\n\n❗ Пожалуйста, ПОЛНОСТЬЮ закройте и заново откройте Mini App, чтобы ваш баланс обновился.")
     except Exception as e:
         await message.answer(f"❌ Ошибка очистки базы: {e}")
+@main_dp.message(Command("wipe_user"))
+async def wipe_user_command(message: types.Message):
+    admin_ids = {6389268882, 6783355911}
+    if message.from_user.id not in admin_ids:
+        await message.answer("❌ У вас нет прав для выполнения этой команды.")
+        return
+        
+    args = message.text.split()
+    if len(args) != 2:
+        await message.answer("Формат: /wipe_user <user_id>")
+        return
+        
+    try:
+        user_id = int(args[1])
+    except ValueError:
+        await message.answer("ID должно быть числом.")
+        return
+        
+    database.delete_user(user_id)
+    await message.answer(f"✅ Пользователь {user_id} успешно удален из базы.")
 
 @main_dp.message(Command("users"))
 async def admin_users_command(message: types.Message):
