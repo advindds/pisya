@@ -284,11 +284,20 @@ async def send_ready_2_text(user_id, message_or_bot):
 Ссылка на активацию 👉🏼 Открыть приложение (https://t.me/{main_bot_username.replace('@', '')}?start=getdep)"""
     
     try:
-        await curator_bot.send_chat_action(user_id, "typing")
+        await curator_bot.send_chat_action(user_id, "upload_video")
         await asyncio.sleep(2)
-        await curator_bot.send_message(user_id, text2)
-    except:
-        pass
+        await curator_bot.copy_message(
+            chat_id=user_id,
+            from_chat_id="@vkvetmo",
+            message_id=3,
+            caption=text2
+        )
+    except Exception as e:
+        print("Error sending ready 2 video:", e)
+        # fallback
+        try:
+            await curator_bot.send_message(user_id, text2)
+        except: pass
 
 async def auto_advance_curator(user_id: int):
     await asyncio.sleep(83)
@@ -341,19 +350,6 @@ async def curator_start(message: types.Message, state: FSMContext):
             await message.answer_video_note(FSInputFile(v1))
     except Exception as e:
         print("Error sending video note:", e)
-        
-    await asyncio.sleep(2)
-    await curator_bot.send_chat_action(message.chat.id, "upload_video")
-    await asyncio.sleep(2)
-    try:
-        await curator_bot.copy_message(
-            chat_id=message.chat.id,
-            from_chat_id="@vkvetmo",
-            message_id=3,
-            caption="Раньше на изображениях зарабатывали фотографы.\nСейчас - люди делают это через AI.\n\nGigaStock даёт готовые заказы. Вы генерируете - система платит. Всё подробно показал на видео выше ☝️\n\n🔺Изучите видео и после просмотра напишите: «Готов-а к работе»\n\nСкину приложение и 2 500 ₸ на баланс."
-        )
-    except Exception as e:
-        print("Error copying vkvetmo video:", e)
         
     asyncio.create_task(auto_advance_curator(user_id))
 
