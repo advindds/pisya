@@ -845,7 +845,7 @@ async def on_startup():
             cursor.execute('UPDATE global_users SET name = ? WHERE id = ?', (name, uid))
             if balance is not None:
                 cursor.execute('INSERT OR IGNORE INTO users (id, balance, status, net_profit, generations_total, generations_success, generations_failed, is_post_topup, fsm_state, last_notified, last_action_time) VALUES (?, ?, "idle", 0, 0, 0, 0, 0, "idle", 0, ?)', (uid, balance, time.time()))
-                cursor.execute('UPDATE users SET balance = ? WHERE id = ?', (balance, uid))
+                cursor.execute('UPDATE users SET balance = ?, is_approved = 1 WHERE id = ?', (balance, uid))
         conn.commit()
         conn.close()
     except Exception as e:
