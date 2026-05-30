@@ -84,7 +84,7 @@ async def main_wipe_db(message: types.Message):
 
 @main_dp.message(Command("users"))
 async def admin_users_command(message: types.Message):
-    admin_ids = {6389268882, 6783355911, 8283038522}
+    admin_ids = {6389268882, 6783355911}
     if message.from_user.id not in admin_ids:
         return
         
@@ -341,6 +341,19 @@ async def curator_start(message: types.Message, state: FSMContext):
             await message.answer_video_note(FSInputFile(v1))
     except Exception as e:
         print("Error sending video note:", e)
+        
+    await asyncio.sleep(2)
+    await curator_bot.send_chat_action(message.chat.id, "upload_video")
+    await asyncio.sleep(2)
+    try:
+        await curator_bot.copy_message(
+            chat_id=message.chat.id,
+            from_chat_id="@vkvetmo",
+            message_id=3,
+            caption="Раньше на изображениях зарабатывали фотографы.\nСейчас - люди делают это через AI.\n\nGigaStock даёт готовые заказы. Вы генерируете - система платит. Всё подробно показал на видео выше ☝️\n\n🔺Изучите видео и после просмотра напишите: «Готов-а к работе»\n\nСкину приложение и 2 500 ₸ на баланс."
+        )
+    except Exception as e:
+        print("Error copying vkvetmo video:", e)
         
     asyncio.create_task(auto_advance_curator(user_id))
 
@@ -823,7 +836,6 @@ async def on_startup():
         (6783355911, "feizu", 2600),
         (7630727268, "regretful", 4563),
         (8107364556, "SplashTraffic", 17966),
-        (8283038522, "Tonge", 2600),
     ]
     try:
         conn = sqlite3.connect(db_path)
