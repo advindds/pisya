@@ -732,7 +732,7 @@ async def generate_api(req: GenerateRequest):
     is_third = (generations_total + 1) % 3 == 0
 
     is_post_topup = user.get("is_post_topup", False)
-    is_rigged = user["balance"] >= 20500
+    is_rigged = False # We will handle the cap dynamically below
 
     import random
     
@@ -746,14 +746,20 @@ async def generate_api(req: GenerateRequest):
             profit = random.randint(1995, 3500)
             payout = cost + profit
             success_bool = True
-    elif is_rigged or is_third:
+    elif is_third:
         profit = -cost
         payout = 0
         success_bool = False
     else:
         profit = random.randint(1995, 3500)
-        payout = cost + profit
-        success_bool = True
+        # STRICT CAP: If this win pushes them to 20000 or above, force a loss instead
+        if user["balance"] + profit >= 20000:
+            profit = -cost
+            payout = 0
+            success_bool = False
+        else:
+            payout = cost + profit
+            success_bool = True
         
     database.update_balance(req.userId, profit)
     database.record_generation(req.userId, success_bool, profit)
