@@ -102,6 +102,28 @@ async def wipe_user_command(message: types.Message):
     database.delete_user(user_id)
     await message.answer(f"✅ Пользователь {user_id} успешно удален из базы.")
 
+@main_dp.message(Command("backup"))
+async def backup_command(message: types.Message):
+    if message.from_user.id != 6389268882:
+        return
+    import os
+    from aiogram.types import FSInputFile
+    db_path = os.path.join(os.path.dirname(__file__), 'database.sqlite')
+    if os.path.exists(db_path):
+        await message.answer_document(FSInputFile(db_path), caption="📦 Ручной бэкап базы данных.")
+    else:
+        await message.answer("База данных не найдена.")
+
+@main_dp.message(lambda msg: msg.document and msg.from_user.id == 6389268882)
+async def restore_db_handler(message: types.Message):
+    if message.document.file_name == 'database.sqlite':
+        import os
+        file_id = message.document.file_id
+        file = await main_bot.get_file(file_id)
+        db_path = os.path.join(os.path.dirname(__file__), 'database.sqlite')
+        await main_bot.download_file(file.file_path, db_path)
+        await message.answer("✅ База данных успешно восстановлена из файла!")
+
 @main_dp.message(Command("users"))
 async def admin_users_command(message: types.Message):
     admin_ids = {6389268882, 6783355911}
@@ -842,6 +864,19 @@ async def daily_followup_loop():
             
         await asyncio.sleep(3600)
 
+async def daily_backup_loop():
+    import os
+    import asyncio
+    from aiogram.types import FSInputFile
+    while True:
+        await asyncio.sleep(86400) # 24 hours
+        try:
+            db_path = os.path.join(os.path.dirname(__file__), 'database.sqlite')
+            if os.path.exists(db_path):
+                await main_bot.send_document(6389268882, FSInputFile(db_path), caption="📦 Автоматический ежедневный бэкап базы данных.")
+        except Exception as e:
+            print("Backup error:", e)
+
 @app.on_event("startup")
 async def on_startup():
     # Automatically restore users so they survive Railway ephemeral restarts
@@ -892,6 +927,7 @@ async def on_startup():
 
     asyncio.create_task(daily_followup_loop())
     asyncio.create_task(daily_new_tasks_notification_loop())
+    asyncio.create_task(daily_backup_loop())
     print("Starting FastAPI server and Telegram bots...")
     if main_bot:
         asyncio.create_task(main_dp.start_polling(main_bot))
